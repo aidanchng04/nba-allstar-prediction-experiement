@@ -6,17 +6,14 @@ from sklearn.model_selection import train_test_split
 import shap
 import joblib
 import os
+import matplotlib.pyplot as plt
 
 
 
 # Function to load data
 def load_data(file_path, indiv_df_file, team_df_file):
-    indiv_stats_sum_file = os.path.join(file_path, indiv_df_file)
-    team_stats_sum_file = os.path.join(file_path, team_df_file)
-
-    indiv_stats_sum = pd.read_csv(indiv_stats_sum_file)
-    team_stats_sum = pd.read_csv(team_stats_sum_file)
-
+    indiv_stats_sum = pd.read_csv(os.path.join(file_path, indiv_df_file))
+    team_stats_sum = pd.read_csv(os.path.join(file_path, team_df_file))
     return indiv_stats_sum, team_stats_sum
 
 
@@ -77,7 +74,8 @@ def scale_features(df, scaled_features):
     scaler = StandardScaler()
 
     df[scaled_features] = scaler.fit_transform(df[scaled_features])
-    model_path = os.path.join("models", "scaler.pkl")
+
+    model_path = os.path.join("models", "scaler_new.pkl")
     joblib.dump(scaler, model_path) # Save scaler for future use
 
     return df
@@ -100,8 +98,8 @@ def select_features(df):
 
 
     explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(X, check_additivity=False)
 
+    shap_values = explainer.shap_values(X, check_additivity=False)
     # shap_values_class1 = shap_values[:, :, 1]  # Select SHAP values for class 1
     # shap.summary_plot(shap_values_class1, X)  # Visualization in notebook, remove for production script
 
@@ -137,8 +135,9 @@ def main():
     df, indiv = filter_columns(indiv, team, selected_features)
     df = create_features(df, indiv)
     df = handle_missing_data(df)
-    df = scale_features(df, selected_features)
+    # df = scale_features(df, selected_features)
     df = select_features(df)
+    print(df)
     save_data(df, file_path)
 
     print("Feature Engineering Completed!")
