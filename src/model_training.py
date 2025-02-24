@@ -32,16 +32,17 @@ def split_data(df):
         "minutes", "gamesPlayed", "reboundsDefensive", "assists", "turnovers"
     ] # List of columns required for scaling 
 
-    print(X_test.var())
+    print(X_test)
 
     X_train_scaled = X_train.copy()
     X_test_scaled = X_test.copy()
 
     # Fit only on training data)
-    X_train_scaled[data_to_scale] = scaler.fit_transform(X_train_scaled[data_to_scale])
+    X_train_scaled = scaler.fit_transform(X_train_scaled)
 
     # Transform test data using the same scaler (but do NOT fit again!)
-    X_test_scaled[data_to_scale] = scaler.transform(X_test_scaled[data_to_scale])
+    X_test_scaled = scaler.transform(X_test_scaled)
+
 
 
     # Save the scaler for later use (for new player predictions)
@@ -109,9 +110,8 @@ def hyperparameter_tuning(X_train, y_train):
 def explain_model(model, X_train, X_test):
     explainer = shap.Explainer(model, X_train)
     shap_values = explainer.shap_values(X_test, check_additivity=False)
-
     shap_values_class1 = shap_values[:, :, 1]  # Select SHAP values for class 1
-    shap.summary_plot(shap_values_class1, X_test)  # Visualization in notebook, remove for production script
+    # shap.summary_plot(shap_values_class1, X_test)  # Visualization in notebook, remove for production script
 
 
 
@@ -127,6 +127,7 @@ def save_model(model, X_test_scaled, X_test, y_test, model_path, processed_path)
     print(X_test_scaled_df.var())
 
     X_test_scaled_df.to_csv(os.path.join(processed_path, "X_test_scaled.csv"), index=False)
+    X_test.to_csv(os.path.join(processed_path, "X_test.csv"), index=False)
     y_test.to_csv(os.path.join(processed_path, "y_test.csv"), index=False)
 
     print("Best model saved successfully!")

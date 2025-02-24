@@ -12,10 +12,12 @@ def load_data(path, name):
     return model
 
 
-def load_test_data(path, x, y):
+def load_test_data(path, x_scaled, x, y, players):
+    X_test_scaled = pd.read_csv(os.path.join(path, x_scaled))
     X_test = pd.read_csv(os.path.join(path, x))
     y_test = pd.read_csv(os.path.join(path, y))   
-    return X_test, y_test
+    players = pd.read_csv(os.path.join(path, players))
+    return X_test_scaled, X_test, y_test, players
 
 
 def evaluate_model(model, x, y):
@@ -74,7 +76,8 @@ def explain_model(model, X_test):
     shap_values = explainer.shap_values(X_test, check_additivity=False)
 
     shap_values_class1 = shap_values[:, :, 1]  # Select SHAP values for class 1
-    shap.summary_plot(shap_values_class1, X_test)  # Visualization in notebook, remove for production script
+    # shap.summary_plot(shap_values_class1, X_test)  # Visualization in notebook, remove for production script
+    # shap.plots.force(explainer.expected_value, shap_values[0], X_test.iloc[0])
 
     # # Ensure X_test is a DataFrame with proper column names
     # if not isinstance(X_test, pd.DataFrame):
@@ -84,6 +87,43 @@ def explain_model(model, X_test):
     # shap.summary_plot(shap_values[1], X_test)
 
     # shap.summary_plot(shap_values, X_test)
+
+
+
+def create_final_df(model, X_test, X_test_scaled, y_test, player_names):
+    """
+    Generate the final dataframe containing model predictions, actual All-Star status,
+    and important player stats for Tableau visualization.
+    
+    Parameters:
+    - model: Trained classification model
+    - X_test_scaled: Scaled version of X_test (used for prediction)
+    - X_test: Original test set (before scaling) for reference
+    - y_test: Actual All-Star labels
+    - player_names: List or Series of player names corresponding to X_test
+    
+    Returns:
+    - final_df: Processed DataFrame with relevant columns for Tableau
+    """
+    
+    # Get model predictions
+    predictions = model.predict(X_test_scaled)
+    prediction_probabilities = model.predict_proba(X_test_scaled)[:, 1]  # Probabilities of being All-Star
+    
+    # Convert to DataFrame
+    final_df = X_test.copy()  # Use unscaled data for readability
+    final_df['Actual_AllStar'] = y_test.values
+    final_df['Predicted_AllStar'] = predictions
+    final_df['Prediction_Confidence'] = np.round(prediction_probabilities * 100, 2)  # Convert to percentage
+    print(player_names.columns)
+    # final_df['PlayerName'] = player_names["playerName"]  # Add player name
+    final_df.insert(0, 'playerName', player_names["playerName"])
+    
+    # Save for Tableau
+    final_df.to_csv(os.path.join("data/processed", "final_tableau_data.csv"), index=False)
+    print("✅ Final dataset saved for Tableau!")
+
+    return final_df
     
 
 
@@ -93,17 +133,21 @@ def main():
 
     processed_path = "data/processed"
     player_path = "data/players"
-    X_test_name = "X_test_scaled.csv"
+    X_test_scaled_name = "X_test_scaled.csv"
+    X_test_name = "X_test.csv"
     y_test_name = "y_test.csv"
+    player_df_name = "player_names.csv"
     player_file_name = "Mikal_Bridges_2025_stats.csv"
 
     model = load_data(model_path, model_name)
-    X_test, y_test = load_test_data(processed_path, X_test_name, y_test_name)
+    X_test_scaled, X_test, y_test, players_names = load_test_data(processed_path, X_test_scaled_name,  X_test_name, y_test_name, player_df_name)
     print(X_test)
     evaluate_model(model, X_test, y_test)
     compare_baseline(X_test, y_test)
     prediction_test(model, player_path, player_file_name)
     explain_model(model, X_test)
+    create_final_df(model, X_test, X_test_scaled, y_test, players_names)
+    create_final_df(model, X_test, X_test_scaled, y_test, players_names)
 
 
     print("everything works so far✅")

@@ -28,6 +28,7 @@ def filter_columns(indiv_df, team_df, selected_features):
     usage_team_stats_sum['teamTricode'] = team_df['teamTricode']
     
     indiv_df = indiv_df.merge(usage_team_stats_sum, on=['teamTricode', 'season_year'], how='left')
+
     return new_df, indiv_df
 
 
@@ -89,8 +90,13 @@ def select_features(df):
     X = df.drop(columns=["season_year", "playerName", "teamTricode", "allStar"])
     y = df["allStar"]
 
+    player_names = df["playerName"]
+
     # Split dataset into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test, players_names_train, players_names_test = train_test_split(X, y, player_names, test_size=0.2, random_state=42)
+
+    players_names_test.to_csv(os.path.join("data/processed","player_names.csv"), index=False)
+
 
     # Train a Random Forest Classifier
     model = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -137,7 +143,6 @@ def main():
     df = handle_missing_data(df)
     # df = scale_features(df, selected_features)
     df = select_features(df)
-    print(df)
     save_data(df, file_path)
 
     print("Feature Engineering Completed!")
